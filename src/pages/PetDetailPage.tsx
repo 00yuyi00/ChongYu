@@ -135,9 +135,6 @@ export default function PetDetailPage() {
               <p className="text-xs text-zinc-400">已实名认证</p>
             </div>
           </div>
-          <button className="text-xs bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 px-3 py-1.5 rounded-full font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
-            查看主页
-          </button>
         </div>
 
         {/* Description */}
