@@ -27,6 +27,8 @@ import AdminPosts from './pages/admin/AdminPosts';
 import AdminFeedback from './pages/admin/AdminFeedback';
 import AdminContent from './pages/admin/AdminContent';
 
+const ENABLE_ADMIN = import.meta.env.VITE_ENABLE_ADMIN === 'true';
+
 export default function App() {
   return (
     <Routes>
@@ -108,14 +110,16 @@ export default function App() {
         } />
       </Route>
 
-      {/* Admin Layout (Currently Public for Testing/Preview) */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="posts" element={<AdminPosts />} />
-        <Route path="feedback" element={<AdminFeedback />} />
-        <Route path="content" element={<AdminContent />} />
-      </Route>
+      {/* Admin Layout (Protected by VITE_ENABLE_ADMIN during build) */}
+      {ENABLE_ADMIN && (
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="posts" element={<AdminPosts />} />
+          <Route path="feedback" element={<AdminFeedback />} />
+          <Route path="content" element={<AdminContent />} />
+        </Route>
+      )}
     </Routes>
   );
 }
