@@ -139,7 +139,7 @@ export default function LoginPage() {
         </button>
       </div>
 
-      <form className="w-full space-y-5" onSubmit={activeTab === 'login' ? handleLogin : handleRegister}>
+      <div className="w-full space-y-5">
         <div className="relative">
           <input
             type="email"
@@ -212,12 +212,13 @@ export default function LoginPage() {
         <div className="pt-4">
           <button
             disabled={isSubmitting}
+            onClick={activeTab === 'login' ? handleLogin : handleRegister}
             className={`w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-amber-500/30 transition-all active:scale-[0.98] text-lg ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {isSubmitting ? '处理中...' : (activeTab === 'login' ? '立即登录' : '注册账号')}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
