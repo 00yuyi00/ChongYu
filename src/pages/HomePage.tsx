@@ -85,12 +85,35 @@ export default function HomePage() {
     <div className="max-w-md mx-auto min-h-screen bg-white dark:bg-zinc-900 relative flex flex-col">
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-4">
-          <div
-            onClick={() => setShowCitySheet(true)}
-            className="flex items-center gap-1 font-medium text-zinc-900 dark:text-zinc-100 cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <span className="text-lg">{currentCity}</span>
-            <ChevronDown className="w-5 h-5" />
+          <div className="relative z-50">
+            <div
+              onClick={() => setShowCitySheet(!showCitySheet)}
+              className="flex items-center gap-1 font-medium text-zinc-900 dark:text-zinc-100 cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <span className="text-lg">{currentCity}</span>
+              <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${showCitySheet ? 'rotate-180' : ''}`} />
+            </div>
+
+            {/* Dropdown Menu */}
+            {showCitySheet && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowCitySheet(false)} />
+                <div className="absolute top-full left-0 mt-3 w-36 bg-[#2c2c2e] dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 border border-white/10">
+                  {['北京市', '上海市', '广州市', '深圳市', '成都市'].map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => { setCurrentCity(city); setShowCitySheet(false); }}
+                      className={`w-full text-left px-5 py-3.5 text-[15px] transition-colors ${currentCity === city
+                          ? 'text-white bg-white/10'
+                          : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                        }`}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex-1 mx-4">
@@ -235,30 +258,6 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* City Selector Bottom Sheet */}
-      {showCitySheet && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCitySheet(false)} />
-          <div className="bg-white dark:bg-zinc-900 rounded-t-3xl w-full max-w-md mx-auto relative p-6 pb-12 animate-in slide-in-from-bottom-full duration-300 shadow-2xl">
-            <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-6" />
-            <h3 className="text-lg font-bold text-center mb-6 text-zinc-900 dark:text-zinc-100">选择城市</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {['上海市', '北京市', '广州市', '深圳市', '成都市'].map((city, index) => (
-                <button
-                  key={city}
-                  onClick={() => { setCurrentCity(city); setShowCitySheet(false); }}
-                  className={`py-3 rounded-xl text-sm font-medium transition-colors ${currentCity === city
-                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/50'
-                    : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                    } ${index === 4 ? 'col-span-2 md:col-span-1' : ''}`}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
