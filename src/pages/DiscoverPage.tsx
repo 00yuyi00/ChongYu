@@ -22,59 +22,98 @@ export default function DiscoverPage() {
 
   // 真实查询当前用户的收藏帖子 (最多展示前两位)
   useEffect(() => {
+    let isMounted = true;
+
     const fetchFavorites = async () => {
-      setIsLoading(true);
-      if (!user) {
-        setFavoritePets([]);
-        setIsLoading(false);
-        return;
-      }
+      try {
+        if (!user) {
+          if (isMounted) {
+            setFavoritePets([]);
+            setIsLoading(false);
+          }
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from('favorites')
-        .select(`
-          post_id,
-          posts (*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(2);
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('favorites')
+          .select(`
+            post_id,
+            posts (*)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(2);
 
-      if (!error && data) {
-        const validPosts = data.map(f => f.posts).filter(p => p !== null) as any[];
-        setFavoritePets(validPosts.map(post => ({
-          id: post.id,
-          name: post.title.split(' ')[0] || post.title,
-          breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
-          location: post.location,
-          time: formatTimeAgo(post.created_at),
-          imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-          isUrgent: post.post_type === 'lost',
-          reward: post.post_type === 'lost' ? '详议' : undefined,
-          status: post.status
-        })));
+        if (error) throw error;
+
+        if (isMounted && data) {
+          const validPosts = data.map(f => f.posts).filter(p => p !== null) as any[];
+          setFavoritePets(validPosts.map(post => ({
+            id: post.id,
+            name: post.title?.split(' ')[0] || post.title || '未知',
+            breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+            location: post.location || '未知位置',
+            time: formatTimeAgo(post.created_at),
+            imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+            isUrgent: post.post_type === 'lost',
+            reward: post.post_type === 'lost' ? '详议' : undefined,
+            status: post.status
+          })));
+        }
+      } catch (err) {
+        console.warn('获取收藏列表失败:', err);
+        // 如果失败，保证不抛出白屏，设置为空列表
+        if (isMounted) setFavoritePets([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
+    // 设置一个最多加载 5 秒的兜底，防止因为网络问题一直转圈
+    const timeoutId = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.warn('请求超时，强制结束 loading...');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     fetchFavorites();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [user]);
 
   const [dogGuideCount, setDogGuideCount] = useState(0);
   const [catGuideCount, setCatGuideCount] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchGuideCounts = async () => {
-      const [{ count: dogCount }, { count: catCount }] = await Promise.all([
-        supabase.from('guides').select('*', { count: 'exact', head: true }).eq('category', 'dog').eq('status', '已发布'),
-        supabase.from('guides').select('*', { count: 'exact', head: true }).eq('category', 'cat').eq('status', '已发布')
-      ]);
+      try {
+        // 使用 Promise.allSettled 避免一个失败导致另一个也无法渲染
+        const results = await Promise.allSettled([
+          supabase.from('guides').select('*', { count: 'exact', head: true }).eq('category', 'dog').eq('status', '已发布'),
+          supabase.from('guides').select('*', { count: 'exact', head: true }).eq('category', 'cat').eq('status', '已发布')
+        ]);
 
-      if (dogCount !== null) setDogGuideCount(dogCount);
-      if (catCount !== null) setCatGuideCount(catCount);
+        if (isMounted) {
+          if (results[0].status === 'fulfilled' && results[0].value.count !== null) {
+            setDogGuideCount(results[0].value.count);
+          }
+          if (results[1].status === 'fulfilled' && results[1].value.count !== null) {
+            setCatGuideCount(results[1].value.count);
+          }
+        }
+      } catch (error) {
+        console.warn("获取指南数量失败:", error);
+      }
     };
 
     fetchGuideCounts();
+    return () => { isMounted = false; };
   }, []);
 
   return (

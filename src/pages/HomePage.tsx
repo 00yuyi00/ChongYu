@@ -28,38 +28,61 @@ export default function HomePage() {
 
   // Fetch real data from supabase
   useEffect(() => {
+    let isMounted = true;
+
     const fetchPets = async () => {
-      setIsLoading(true);
-      let query = supabase.from('posts').select('*').eq('status', '展示中');
+      try {
+        setIsLoading(true);
+        let query = supabase.from('posts').select('*').eq('status', '展示中');
 
-      // Filter by category
-      query = query.eq('pet_type', activeCategory);
+        // Filter by category
+        query = query.eq('pet_type', activeCategory);
 
-      // Filter by tab
-      if (activeTab === 'adopt') {
-        query = query.eq('post_type', 'adopt');
-      } else {
-        query = query.in('post_type', ['lost', 'found']);
+        // Filter by tab
+        if (activeTab === 'adopt') {
+          query = query.eq('post_type', 'adopt');
+        } else {
+          query = query.in('post_type', ['lost', 'found']);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (isMounted && data) {
+          setPets(data.map(post => ({
+            id: post.id,
+            name: post.title?.split(' ')[0] || post.title || '未知',
+            breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+            location: post.location || '未知位置',
+            time: formatTimeAgo(post.created_at),
+            imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+            isUrgent: post.post_type === 'lost',
+            reward: post.post_type === 'lost' ? '详议' : undefined
+          })));
+        }
+      } catch (err) {
+        console.warn('获取主页宠物数据失败:', err);
+        if (isMounted) setPets([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setPets(data.map(post => ({
-          id: post.id,
-          name: post.title.split(' ')[0] || post.title,
-          breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
-          location: post.location,
-          time: formatTimeAgo(post.created_at),
-          imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-          isUrgent: post.post_type === 'lost',
-          reward: post.post_type === 'lost' ? '详议' : undefined // or actual DB reward if we add it
-        })));
-      }
-      setIsLoading(false);
     };
 
+    // 5秒超时兜底，防止网络太差导致一直转圈
+    const timeoutId = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.warn('请求超时，强制结束 loading...');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     fetchPets();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [activeTab, activeCategory]);
 
   // Banner Auto-play
@@ -104,8 +127,8 @@ export default function HomePage() {
                       key={city}
                       onClick={() => { setCurrentCity(city); setShowCitySheet(false); }}
                       className={`w-full text-left px-5 py-3.5 text-[15px] transition-colors ${currentCity === city
-                          ? 'text-white bg-white/10'
-                          : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                        ? 'text-white bg-white/10'
+                        : 'text-zinc-300 hover:bg-white/10 hover:text-white'
                         }`}
                     >
                       {city}
