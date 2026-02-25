@@ -50,11 +50,22 @@ export default function AgreementPage() {
         user_id: user.id,
         post_type: postData.publishType,
         pet_type: postData.petType,
-        title: `${postData.breed || '宠物'} ${postData.publishType === 'seek' ? '寻宠' : '送养'}`,
+        // 标题只使用昵称或品种，不带后缀
+        title: postData.nickname || postData.breed || '寻宠/送养信息',
         description: postData.description,
         images: imageUrls,
         location: postData.location,
-        status: '展示中'
+        status: '展示中',
+        // 新增字段
+        nickname: postData.nickname || '',
+        breed: postData.breed || '',
+        age: postData.age || '',
+        phone: postData.phone || '',
+        is_private: postData.isPrivate || false,
+        reward_amount: postData.rewardAmount || '',
+        vaccine: postData.vaccine || 'unknown',
+        sterilization: postData.sterilization || 'unknown',
+        requirements: postData.requirements || []
       });
 
       if (error) throw error;

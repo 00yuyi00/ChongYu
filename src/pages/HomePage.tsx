@@ -16,7 +16,7 @@ const formatTimeAgo = (dateStr: string) => {
 export default function HomePage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'adopt' | 'lost'>('adopt');
-  const [activeCategory, setActiveCategory] = useState<'dog' | 'cat'>('dog');
+  const [activeCategory, setActiveCategory] = useState<'all' | 'dog' | 'cat'>('all');
   const [currentBanner, setCurrentBanner] = useState(0);
   const [pets, setPets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,13 +36,15 @@ export default function HomePage() {
         let query = supabase.from('posts').select('*').eq('status', '展示中');
 
         // Filter by category
-        query = query.eq('pet_type', activeCategory);
+        if (activeCategory !== 'all') {
+          query = query.eq('pet_type', activeCategory);
+        }
 
         // Filter by tab
         if (activeTab === 'adopt') {
           query = query.eq('post_type', 'adopt');
         } else {
-          query = query.in('post_type', ['lost', 'found']);
+          query = query.in('post_type', ['lost', 'found', 'seek']); // include 'seek'
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });
@@ -50,16 +52,23 @@ export default function HomePage() {
         if (error) throw error;
 
         if (isMounted && data) {
-          setPets(data.map(post => ({
-            id: post.id,
-            name: post.title?.split(' ')[0] || post.title || '未知',
-            breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1] : '',
-            location: post.location || '未知位置',
-            time: formatTimeAgo(post.created_at),
-            imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-            isUrgent: post.post_type === 'lost',
-            reward: post.post_type === 'lost' ? '详议' : undefined
-          })));
+          setPets(data.map(post => {
+            // Clean up old titles that might still have suffixes
+            let cleanName = post.title?.split(' ')[0] || post.title || '未知';
+            cleanName = cleanName.replace(/寻宠/g, '').replace(/送养/g, '').trim();
+            if (!cleanName) cleanName = '宠物';
+
+            return {
+              id: post.id,
+              name: cleanName,
+              breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1].replace(/寻宠/g, '').replace(/送养/g, '') : '',
+              location: post.location || '未知位置',
+              time: formatTimeAgo(post.created_at),
+              imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+              isUrgent: post.post_type === 'lost' || post.post_type === 'seek',
+              reward: (post.post_type === 'lost' || post.post_type === 'seek') ? '详议' : undefined
+            };
+          }));
         }
       } catch (err) {
         console.warn('获取主页宠物数据失败:', err);
@@ -183,13 +192,13 @@ export default function HomePage() {
         </div>
 
         <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-2">
-          {['狗狗', '猫咪'].map((cat) => {
-            const id = cat === '狗狗' ? 'dog' : 'cat';
+          {['全部', '狗狗', '猫咪'].map((cat) => {
+            const id = cat === '全部' ? 'all' : cat === '狗狗' ? 'dog' : 'cat';
             const isActive = activeCategory === id;
             return (
               <button
                 key={id}
-                onClick={() => setActiveCategory(id as 'dog' | 'cat')}
+                onClick={() => setActiveCategory(id as 'all' | 'dog' | 'cat')}
                 className={`px-6 py-1.5 rounded-full text-sm font-medium shrink-0 transition-colors ${isActive
                   ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'

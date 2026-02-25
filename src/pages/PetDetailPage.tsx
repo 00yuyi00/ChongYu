@@ -37,14 +37,14 @@ export default function PetDetailPage() {
       if (!error && data) {
         setPet({
           id: data.id,
-          name: data.title.split(' ')[0] || data.title,
-          breed: data.title.split(' ').length > 1 ? data.title.split(' ')[1] : '',
+          name: data.nickname || data.title.split(' ')[0] || data.title,
+          breed: data.breed || (data.title.split(' ').length > 1 ? data.title.split(' ')[1] : ''),
           location: data.location,
           time: formatTimeAgo(data.created_at),
           imageUrl: data.images && data.images.length > 0 ? data.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
           images: data.images || [],
           status: data.post_type,
-          reward: data.post_type === 'lost' ? '详议' : undefined,
+          reward: data.reward_amount ? `¥${data.reward_amount}` : (data.post_type === 'lost' || data.post_type === 'seek' ? '详议' : undefined),
           description: data.description,
           publisher: {
             id: data.profiles.id,
@@ -52,8 +52,10 @@ export default function PetDetailPage() {
             avatar: data.profiles.avatar_url,
             verified: true
           },
-          age: '未知', // Backend DB doesn't have it yet
-          health: '疫苗和驱虫情况请私聊确认'
+          age: data.age || '未知',
+          health: `${data.vaccine !== 'unknown' ? '已免疫 ' : ''}${data.sterilization !== 'unknown' ? '已绝育' : ''}`.trim() || '疫苗/驱虫请私聊确认',
+          phone: data.is_private ? '仅注册可见' : (data.phone || '未留电话'),
+          requirements: data.requirements || []
         });
 
         // 获取收藏状态
@@ -193,7 +195,7 @@ export default function PetDetailPage() {
         </div>
 
         {/* Tags/Attributes */}
-        <div className="flex gap-3 overflow-x-auto no-scrollbar">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
           <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center shrink-0">
             <p className="text-xs text-zinc-400 mb-0.5">品种</p>
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.breed || '未知'}</p>
@@ -203,12 +205,32 @@ export default function PetDetailPage() {
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.age}</p>
           </div>
           {pet.health && (
-            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center shrink-0">
-              <p className="text-xs text-zinc-400 mb-0.5">健康</p>
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.health}</p>
+            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[100px] text-center shrink-0">
+              <p className="text-xs text-zinc-400 mb-0.5">健康状况</p>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 truncate">{pet.health}</p>
+            </div>
+          )}
+          {pet.phone && (
+            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[120px] text-center shrink-0">
+              <p className="text-xs text-zinc-400 mb-0.5">联系电话</p>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 font-mono">{pet.phone}</p>
             </div>
           )}
         </div>
+
+        {/* Requirements */}
+        {pet.requirements && pet.requirements.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">核心要求</h2>
+            <div className="flex flex-wrap gap-2">
+              {pet.requirements.map((req: string) => (
+                <span key={req} className="bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full text-xs font-medium border border-amber-100 dark:border-amber-800/50">
+                  {req}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Publisher */}
         <div className="bg-white dark:bg-zinc-800 p-4 rounded-2xl flex items-center justify-between shadow-sm border border-zinc-100 dark:border-zinc-700/50">
