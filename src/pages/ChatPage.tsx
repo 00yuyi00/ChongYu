@@ -1,24 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Image } from 'lucide-react';
+import { ArrowLeft, Send, Image, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface Message {
   id: string;
-  text: string;
-  sender: 'me' | 'other';
-  timestamp: number; // Unix timestamp
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
 }
 
 export default function ChatPage() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: '你好，请问这只猫还在吗？', sender: 'me', timestamp: Date.now() - 1000 * 60 * 30 },
-    { id: '2', text: '在的，目前还在找领养人。', sender: 'other', timestamp: Date.now() - 1000 * 60 * 28 },
-    { id: '3', text: '它的性格怎么样？粘人吗？', sender: 'me', timestamp: Date.now() - 1000 * 60 * 25 },
-    { id: '4', text: '非常粘人，喜欢在腿上睡觉。', sender: 'other', timestamp: Date.now() - 1000 * 60 * 5 },
-  ]);
+  const { id: otherUserId } = useParams();
+  const { user } = useAuth();
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [otherUser, setOtherUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -26,41 +29,95 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    if (!user || !otherUserId) return;
+
+    // 1. 获取对方信息
+    const fetchOtherUser = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', otherUserId)
+        .single();
+      setOtherUser(data);
+    };
+
+    // 2. 获取历史消息
+    const fetchMessages = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setMessages(data);
+      }
+      setIsLoading(false);
+      setTimeout(scrollToBottom, 100);
+    };
+
+    fetchOtherUser();
+    fetchMessages();
+
+    // 3. 订阅实时消息
+    const channel = supabase
+      .channel(`chat:${user.id}:${otherUserId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${user.id}`
+      }, (payload) => {
+        const newMessage = payload.new as Message;
+        // 确保这条消息确实是发给我的，且是从当前对话人发出的
+        if (newMessage.sender_id === otherUserId) {
+          setMessages(prev => [...prev, newMessage]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, otherUserId]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  const handleSend = async () => {
+    if (!inputText.trim() || !user || !otherUserId || isSending) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: 'me',
-      timestamp: Date.now(),
-    };
+    try {
+      setIsSending(true);
+      const content = inputText;
+      setInputText('');
 
-    setMessages([...messages, newMessage]);
-    setInputText('');
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          content: content
+        })
+        .select()
+        .single();
 
-    // Mock reply
-    setTimeout(() => {
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
-        text: '好的，我们可以约个时间见面看看。',
-        sender: 'other',
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, reply]);
-    }, 1000);
+      if (error) throw error;
+      if (data) {
+        setMessages(prev => [...prev, data]);
+      }
+    } catch (err) {
+      console.error('Send message error:', err);
+      alert('消息发送失败');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null) => {
-    if (!prevMsg) return true;
-    return currentMsg.timestamp - prevMsg.timestamp > 5 * 60 * 1000; // 5 minutes
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -70,42 +127,48 @@ export default function ChatPage() {
           <ArrowLeft className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
         </button>
         <div className="flex flex-col items-center">
-          <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">张先生</h1>
+          <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            {otherUser?.name || '用户'}
+          </h1>
+          {otherUser?.status === '封禁' && <span className="text-[10px] text-red-500">此账号已被封禁</span>}
         </div>
-        <div className="w-10 h-10"></div> {/* Empty right placeholder */}
+        <div className="w-10 h-10"></div>
       </header>
 
-      <main className="flex-1 px-4 py-6 space-y-4 overflow-y-auto pb-24">
-        {messages.map((msg, index) => {
-          const showTime = shouldShowTimestamp(msg, index > 0 ? messages[index - 1] : null);
-          return (
-            <div key={msg.id} className="flex flex-col gap-2">
-              {showTime && (
-                <div className="text-center text-xs text-zinc-400 my-2">
-                  {formatTime(msg.timestamp)}
-                </div>
-              )}
+      <main className="flex-1 px-4 py-6 space-y-4 overflow-y-auto pb-24 h-[calc(100vh-140px)]">
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-10 text-zinc-400 text-sm">暂无消息，打个招呼吧 ~</div>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} className="flex flex-col gap-1">
               <div
-                className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender === 'me'
-                      ? 'bg-amber-500 text-white rounded-tr-none'
-                      : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
+                  className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender_id === user?.id
+                    ? 'bg-amber-500 text-white rounded-tr-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
                     }`}
                 >
-                  {msg.text}
+                  {msg.content}
                 </div>
               </div>
+              <div className={`text-[10px] text-zinc-400 px-1 ${msg.sender_id === user?.id ? 'text-right' : 'text-left'}`}>
+                {formatTime(msg.created_at)}
+              </div>
             </div>
-          );
-        })}
+          ))
+        )}
         <div ref={messagesEndRef} />
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 p-4 max-w-md mx-auto">
         <div className="flex items-center gap-3">
-          <button className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+          <button className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors" title="发送图片">
             <Image className="w-6 h-6" />
           </button>
           <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-4 py-2 flex items-center">
@@ -116,17 +179,18 @@ export default function ChatPage() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="发送消息..."
               className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100 p-0"
+              disabled={isSending}
             />
           </div>
           <button
             onClick={handleSend}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isSending}
             className={`p-2 rounded-full transition-all ${inputText.trim()
-                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30 hover:bg-amber-600 active:scale-90'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
+              ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30 hover:bg-amber-600 active:scale-90'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
               }`}
           >
-            <Send className="w-5 h-5" />
+            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
         </div>
       </div>

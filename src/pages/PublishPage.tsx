@@ -9,6 +9,8 @@ export default function PublishPage() {
   const [hasReward, setHasReward] = useState(false);
 
   // Form State
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     nickname: '',
     breed: '',
@@ -23,13 +25,52 @@ export default function PublishPage() {
     requirements: [] as string[],
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      if (files.length + newFiles.length > 9) {
+        alert('最多只能上传9张照片');
+        return;
+      }
+      setFiles([...files, ...newFiles]);
+
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file as Blob));
+      setPreviews([...previews, ...newPreviews]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newFiles = [...files];
+    const newPreviews = [...previews];
+    URL.revokeObjectURL(newPreviews[index]);
+    newFiles.splice(index, 1);
+    newPreviews.splice(index, 1);
+    setFiles(newFiles);
+    setPreviews(newPreviews);
+  };
+
   const handleNext = () => {
     // Basic validation
     if (!formData.location || !formData.description || !formData.phone) {
       alert('请填写必要信息（位置、描述、联系方式）');
       return;
     }
-    navigate('/agreement');
+    if (files.length === 0) {
+      alert('请至少上传一张宠物照片');
+      return;
+    }
+
+    // 传递数据到协议页
+    navigate('/agreement', {
+      state: {
+        postData: {
+          ...formData,
+          publishType,
+          petType,
+        },
+        files: files // 注意：File 对象无法通过序列化存储，但可以在内存路由 state 中短期传递
+      }
+    });
   };
 
   const toggleRequirement = (req: string) => {
@@ -99,13 +140,30 @@ export default function PublishPage() {
             <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">添加照片 <span className="text-xs font-normal text-zinc-400">(最多9张)</span></h2>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="aspect-square bg-zinc-200 dark:bg-zinc-800 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-700 cursor-pointer hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors group">
-              <Upload className="text-zinc-400 group-hover:text-zinc-500 w-8 h-8 transition-colors" />
-              <span className="text-[10px] text-zinc-400 group-hover:text-zinc-500 mt-1 transition-colors">上传照片</span>
-            </div>
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="aspect-square bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl"></div>
+            {previews.map((preview, index) => (
+              <div key={index} className="aspect-square relative group">
+                <img src={preview} alt="Preview" className="w-full h-full object-cover rounded-2xl border border-zinc-200 dark:border-zinc-700" />
+                <button
+                  onClick={() => removeImage(index)}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-lg"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
+            {previews.length < 9 && (
+              <label className="aspect-square bg-zinc-200 dark:bg-zinc-800 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-700 cursor-pointer hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors group relative">
+                <Upload className="text-zinc-400 group-hover:text-zinc-500 w-8 h-8 transition-colors" />
+                <span className="text-[10px] text-zinc-400 group-hover:text-zinc-500 mt-1 transition-colors">上传照片</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={handleFileChange}
+                />
+              </label>
+            )}
           </div>
         </div>
 
@@ -224,8 +282,8 @@ export default function PublishPage() {
                     key={req}
                     onClick={() => toggleRequirement(req)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${formData.requirements.includes(req)
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                   >
                     {req}

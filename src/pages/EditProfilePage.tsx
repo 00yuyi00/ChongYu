@@ -1,26 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Check } from 'lucide-react';
+import { ArrowLeft, Camera, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+import { uploadImage } from '../lib/storage';
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [avatar, setAvatar] = useState(user?.avatar || 'https://i.pravatar.cc/150?u=user');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bio, setBio] = useState('热爱生活，热爱宠物。');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    if (user) {
-      // 在这里未来可以补充 supabase.from('profiles').update 逻辑
-      alert('个人资料保存逻辑已转移到 supabase，待全栈联调细节补全...');
+  const handleSave = async () => {
+    if (!user || isSaving) return;
+
+    try {
+      setIsSaving(true);
+      let finalAvatarUrl = avatar;
+
+      // 1. 如果有新选择的文件，先上传
+      if (avatarFile) {
+        finalAvatarUrl = await uploadImage(avatarFile, 'avatars');
+      }
+
+      // 2. 更新数据库
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: name,
+          avatar_url: finalAvatarUrl
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // 3. 提示并返回
+      alert('个人资料已成功保存！');
       navigate(-1);
+    } catch (err: any) {
+      console.error('Update Profile Error:', err);
+      alert('保存失败: ' + (err.message || '网络错误'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatar(reader.result as string);

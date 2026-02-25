@@ -1,36 +1,132 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, MapPin, Share2, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { MOCK_PETS } from '../data/mockData';
+import { ArrowLeft, Heart, MessageCircle, MapPin, Share2, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+// Helper for formatting time
+const formatTimeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return '今天';
+  if (days === 1) return '昨天';
+  return `${days}天前`;
+};
 
 export default function PetDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [pet, setPet] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const pet = MOCK_PETS.find(p => p.id === id);
+  useEffect(() => {
+    const fetchPetData = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (id, name, avatar_url)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (!error && data) {
+        setPet({
+          id: data.id,
+          name: data.title.split(' ')[0] || data.title,
+          breed: data.title.split(' ').length > 1 ? data.title.split(' ')[1] : '',
+          location: data.location,
+          time: formatTimeAgo(data.created_at),
+          imageUrl: data.images && data.images.length > 0 ? data.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+          images: data.images || [],
+          status: data.post_type,
+          reward: data.post_type === 'lost' ? '详议' : undefined,
+          description: data.description,
+          publisher: {
+            id: data.profiles.id,
+            name: data.profiles.name,
+            avatar: data.profiles.avatar_url,
+            verified: true
+          },
+          age: '未知', // Backend DB doesn't have it yet
+          health: '疫苗和驱虫情况请私聊确认'
+        });
+
+        // 获取收藏状态
+        if (user) {
+          const { data: favData } = await supabase
+            .from('favorites')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('post_id', data.id)
+            .maybeSingle();
+          setIsFavorite(!!favData);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchPetData();
+  }, [id, user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (!pet) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <div className="text-center">
           <p className="text-zinc-500 mb-4">未找到该宠物信息</p>
-          <button onClick={() => navigate('/')} className="text-amber-500 font-medium">返回首页</button>
+          <button onClick={() => navigate(-1)} className="text-amber-500 font-medium">返回上一页</button>
         </div>
       </div>
     );
   }
 
-  const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // In a real app, this would call an API
-    const msg = !isFavorite ? '已添加到收藏' : '已取消收藏';
-    // Simple toast replacement
-    alert(msg);
+  const handleFavorite = async () => {
+    if (!user) {
+      alert("请先登录");
+      navigate('/login');
+      return;
+    }
+
+    if (isFavorite) {
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('post_id', pet.id);
+      if (!error) setIsFavorite(false);
+      else alert('取消收藏失败');
+    } else {
+      const { error } = await supabase
+        .from('favorites')
+        .insert([{ user_id: user.id, post_id: pet.id }]);
+      if (!error) setIsFavorite(true);
+      else alert('收藏失败，可能已收藏');
+    }
   };
 
   const handleContact = () => {
-    navigate('/chat');
+    if (!user) {
+      alert("请先登录");
+      navigate('/login');
+      return;
+    }
+    if (user.id === pet.publisher.id) {
+      alert("不能自己联系自己哦");
+      return;
+    }
+    navigate(`/chat/${pet.publisher.id}`);
   };
 
   return (
@@ -80,7 +176,7 @@ export default function PetDetailPage() {
                 </span>
               ) : (
                 <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-0.5 rounded-full font-medium border border-green-200 dark:border-green-800">
-                  待领养
+                  {pet.status === 'found' ? '寻找主人' : '待领养'}
                 </span>
               )}
             </div>
@@ -98,16 +194,16 @@ export default function PetDetailPage() {
 
         {/* Tags/Attributes */}
         <div className="flex gap-3 overflow-x-auto no-scrollbar">
-          <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center">
+          <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center shrink-0">
             <p className="text-xs text-zinc-400 mb-0.5">品种</p>
-            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.breed}</p>
+            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.breed || '未知'}</p>
           </div>
-          <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center">
+          <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center shrink-0">
             <p className="text-xs text-zinc-400 mb-0.5">年龄</p>
-            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.age || '未知'}</p>
+            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.age}</p>
           </div>
           {pet.health && (
-            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center">
+            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-100 dark:border-zinc-700/50 min-w-[80px] text-center shrink-0">
               <p className="text-xs text-zinc-400 mb-0.5">健康</p>
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{pet.health}</p>
             </div>
@@ -141,7 +237,7 @@ export default function PetDetailPage() {
         <div className="space-y-3">
           <h2 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">详细信息</h2>
           <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
-            {pet.description}
+            {pet.description || '无详细描述'}
           </p>
         </div>
 

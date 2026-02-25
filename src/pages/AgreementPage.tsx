@@ -1,12 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { uploadImage } from '../lib/storage';
+import { useAuth } from '../context/AuthContext';
 
 export default function AgreementPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [canAgree, setCanAgree] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // 获取从 PublishPage 传来的数据
+  const { postData, files } = (location.state as any) || {};
+
+  useEffect(() => {
+    if (!postData || !files) {
+      navigate('/publish');
+    }
+  }, [postData, files, navigate]);
 
   const handleScroll = () => {
     if (contentRef.current) {
@@ -17,9 +32,39 @@ export default function AgreementPage() {
     }
   };
 
-  const handleSubmit = () => {
-    if (agreed) {
+  const handleSubmit = async () => {
+    if (!agreed || isPublishing || !user) return;
+
+    try {
+      setIsPublishing(true);
+
+      // 1. 循环上传图片到存储桶
+      const imageUrls: string[] = [];
+      for (const file of files) {
+        const url = await uploadImage(file, 'posts');
+        imageUrls.push(url);
+      }
+
+      // 2. 将数据插入数据库
+      const { error } = await supabase.from('posts').insert({
+        user_id: user.id,
+        post_type: postData.publishType,
+        pet_type: postData.petType,
+        title: `${postData.breed || '宠物'} ${postData.publishType === 'seek' ? '寻宠' : '送养'}`,
+        description: postData.description,
+        images: imageUrls,
+        location: postData.location,
+        status: '展示中'
+      });
+
+      if (error) throw error;
+
       navigate('/publish/success');
+    } catch (err: any) {
+      console.error('Publish Error:', err);
+      alert('发布失败，请检查网络或重试: ' + (err.message || ''));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -109,8 +154,8 @@ export default function AgreementPage() {
             onClick={handleSubmit}
             disabled={!agreed}
             className={`flex-[2] py-3.5 px-6 rounded-full font-bold shadow-lg transition-all ${agreed
-                ? 'bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600 active:scale-[0.98]'
-                : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-500 cursor-not-allowed shadow-none'
+              ? 'bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600 active:scale-[0.98]'
+              : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-500 cursor-not-allowed shadow-none'
               }`}
           >
             提交发布

@@ -1,23 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, MapPin, Edit3, CheckCircle, FileText } from 'lucide-react';
-import { MOCK_PETS } from '../data/mockData';
+import { ArrowLeft, Clock, MapPin, Edit3, CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+// Helper for formatting time
+const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return '今天';
+    if (days === 1) return '昨天';
+    return `${days}天前`;
+};
 
 export default function MyPostsPage() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'all' | 'lost' | 'found' | 'adopt'>('all');
+    const [posts, setPosts] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 模拟"我的发布"专属数据
-    const [posts, setPosts] = useState(MOCK_PETS.map((pet, idx) => ({
-        ...pet,
-        postStatus: idx === 0 ? '展示中' : idx === 1 ? '审核中' : (idx === 2 ? '被驳回' : '展示中'),
-        postType: idx % 3 === 0 ? 'lost' : idx % 3 === 1 ? 'found' : 'adopt'
-    })));
+    useEffect(() => {
+        if (!user) return;
+        const fetchMyPosts = async () => {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
 
-    const handleFinish = (e: React.MouseEvent, id: string) => {
+            if (!error && data) {
+                setPosts(data.map(post => ({
+                    id: post.id,
+                    name: post.title.split(' ')[0] || post.title,
+                    breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+                    location: post.location,
+                    time: formatTimeAgo(post.created_at),
+                    imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+                    postStatus: post.status,
+                    postType: post.post_type
+                })));
+            }
+            setIsLoading(false);
+        };
+        fetchMyPosts();
+    }, [user]);
+
+    const handleFinish = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (window.confirm('确认该帖已解决并下架吗？')) {
-            setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已结案' } : p));
+            const { error } = await supabase.from('posts').update({ status: '已结案' }).eq('id', id);
+            if (!error) {
+                setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已结案' } : p));
+            } else {
+                alert('操作失败');
+            }
         }
     };
 
@@ -50,8 +88,8 @@ export default function MyPostsPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === tab.id
-                                    ? 'border-amber-500 text-amber-500'
-                                    : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+                                ? 'border-amber-500 text-amber-500'
+                                : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
                                 }`}
                         >
                             {tab.label}
@@ -61,7 +99,11 @@ export default function MyPostsPage() {
             </header>
 
             <main className="flex-1 p-4">
-                {filteredPosts.length > 0 ? (
+                {isLoading ? (
+                    <div className="flex justify-center py-20">
+                        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+                    </div>
+                ) : filteredPosts.length > 0 ? (
                     <div className="space-y-4">
                         {filteredPosts.map(post => (
                             <div
@@ -77,9 +119,9 @@ export default function MyPostsPage() {
                                             <div className="flex justify-between items-start mb-1">
                                                 <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate pr-2">{post.name}, {post.breed}</h3>
                                                 <span className={`text-xs px-2 py-0.5 rounded focus:outline-none shrink-0 ${post.postStatus === '展示中' ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' :
-                                                        post.postStatus === '审核中' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' :
-                                                            post.postStatus === '被驳回' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' :
-                                                                'text-zinc-500 bg-zinc-100 dark:bg-zinc-800'
+                                                    post.postStatus === '审核中' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' :
+                                                        post.postStatus === '被驳回' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' :
+                                                            'text-zinc-500 bg-zinc-100 dark:bg-zinc-800'
                                                     }`}>
                                                     {post.postStatus}
                                                 </span>

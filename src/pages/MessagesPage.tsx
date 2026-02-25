@@ -1,39 +1,106 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MoreHorizontal } from 'lucide-react';
+import { Search, MoreHorizontal, Loader2, MessageSquareOff } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
-const MOCK_CHATS = [
-  {
-    id: '1',
-    name: '张先生',
-    avatar: 'https://i.pravatar.cc/150?u=1',
-    lastMessage: '好的，我们可以约个时间见面看看。',
-    time: '10:35',
-    unread: 2,
-    online: true
-  },
-  {
-    id: '2',
-    name: '李女士',
-    avatar: 'https://i.pravatar.cc/150?u=2',
-    lastMessage: '请问这只狗狗还在吗？',
-    time: '昨天',
-    unread: 0,
-    online: false
-  },
-  {
-    id: '3',
-    name: '王小明',
-    avatar: 'https://i.pravatar.cc/150?u=3',
-    lastMessage: '谢谢你的帮助！',
-    time: '星期一',
-    unread: 0,
-    online: false
-  }
-];
+interface ChatPreview {
+  partnerId: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  online: boolean;
+}
 
 export default function MessagesPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [chats, setChats] = useState<ChatPreview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchChats = async () => {
+      try {
+        setIsLoading(true);
+        // 1. 获取所有与我相关的消息，按时间倒序
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // 2. 内存内聚合对话伙伴
+        const partnerMap = new Map<string, any>();
+
+        messages?.forEach(msg => {
+          const partnerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+          if (!partnerMap.has(partnerId)) {
+            partnerMap.set(partnerId, {
+              lastMessage: msg.content,
+              time: msg.created_at,
+              unread: 0 // 后续可根据状态计数
+            });
+          }
+        });
+
+        const partnerIds = Array.from(partnerMap.keys());
+        if (partnerIds.length === 0) {
+          setChats([]);
+          return;
+        }
+
+        // 3. 批量获取伙伴的 Profile 信息
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', partnerIds);
+
+        // 4. 合并结果
+        const finalChats: ChatPreview[] = partnerIds.map(pid => {
+          const profile = profiles?.find(p => p.id === pid);
+          const meta = partnerMap.get(pid);
+          return {
+            partnerId: pid,
+            name: profile?.name || '未知用户',
+            avatar: profile?.avatar_url || 'https://i.pravatar.cc/150',
+            lastMessage: meta.lastMessage,
+            time: formatChatTime(meta.time),
+            unread: 0,
+            online: false // Supabase 后续可配合 Realtime Presence
+          };
+        });
+
+        setChats(finalChats);
+      } catch (err) {
+        console.error('Fetch chats error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, [user]);
+
+  const formatChatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+
+    if (diff < 1000 * 60 * 60 * 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diff < 1000 * 60 * 60 * 24 * 7) {
+      const days = ['日', '一', '二', '三', '四', '五', '六'];
+      return `周${days[date.getDay()]}`;
+    } else {
+      return `${date.getMonth() + 1}-${date.getDate()}`;
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto relative min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-24">
@@ -55,38 +122,49 @@ export default function MessagesPage() {
         </div>
       </header>
 
-      <main className="px-4 space-y-2">
-        {MOCK_CHATS.map((chat) => (
-          <div
-            key={chat.id}
-            onClick={() => navigate(`/chat/${chat.id}`)}
-            className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800 rounded-2xl active:scale-[0.98] transition-transform cursor-pointer border border-zinc-100 dark:border-zinc-700/50 shadow-sm"
-          >
-            <div className="relative">
-              <img
-                src={chat.avatar}
-                alt={chat.name}
-                className="w-12 h-12 rounded-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              {chat.online && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-800 rounded-full"></div>
+      <main className="px-4 space-y-2 py-4">
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+          </div>
+        ) : chats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+            <MessageSquareOff className="w-12 h-12 mb-4 opacity-20" />
+            <p className="text-sm">暂无聊天记录</p>
+          </div>
+        ) : (
+          chats.map((chat) => (
+            <div
+              key={chat.partnerId}
+              onClick={() => navigate(`/chat/${chat.partnerId}`)}
+              className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800 rounded-2xl active:scale-[0.98] transition-all cursor-pointer border border-zinc-100 dark:border-zinc-700/50 shadow-sm hover:border-amber-500/20"
+            >
+              <div className="relative">
+                <img
+                  src={chat.avatar}
+                  alt={chat.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                {chat.online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-800 rounded-full"></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate">{chat.name}</h3>
+                  <span className="text-xs text-zinc-400">{chat.time}</span>
+                </div>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate font-medium">{chat.lastMessage}</p>
+              </div>
+              {chat.unread > 0 && (
+                <div className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+                  {chat.unread}
+                </div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate">{chat.name}</h3>
-                <span className="text-xs text-zinc-400">{chat.time}</span>
-              </div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">{chat.lastMessage}</p>
-            </div>
-            {chat.unread > 0 && (
-              <div className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
-                {chat.unread}
-              </div>
-            )}
-          </div>
-        ))}
+          ))
+        )}
       </main>
     </div>
   );

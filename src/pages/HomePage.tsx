@@ -1,26 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronDown, Bell } from 'lucide-react';
+import { Search, ChevronDown, Bell, Loader2 } from 'lucide-react';
 import PetCard from '../components/PetCard';
-import { MOCK_PETS } from '../data/mockData';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+
+// Helper for formatting time
+const formatTimeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return '今天';
+  if (days === 1) return '昨天';
+  return `${days}天前`;
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'adopt' | 'lost'>('lost');
   const [activeCategory, setActiveCategory] = useState<'dog' | 'cat'>('dog');
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [pets, setPets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // New features state
   const [showCitySheet, setShowCitySheet] = useState(false);
   const [currentCity, setCurrentCity] = useState('上海市');
   const [unreadCount] = useState(2); // Mock unread messages count
 
-  // Filter pets based on tab and category
-  const filteredPets = MOCK_PETS.filter(pet => {
-    const matchesTab = pet.status === activeTab;
-    const matchesCategory = pet.type === activeCategory;
-    return matchesTab && matchesCategory;
-  });
+  // Fetch real data from supabase
+  useEffect(() => {
+    const fetchPets = async () => {
+      setIsLoading(true);
+      let query = supabase.from('posts').select('*').eq('status', '展示中');
+
+      // Filter by category
+      query = query.eq('pet_type', activeCategory);
+
+      // Filter by tab
+      if (activeTab === 'adopt') {
+        query = query.eq('post_type', 'adopt');
+      } else {
+        query = query.in('post_type', ['lost', 'found']);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setPets(data.map(post => ({
+          id: post.id,
+          name: post.title.split(' ')[0] || post.title,
+          breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+          location: post.location,
+          time: formatTimeAgo(post.created_at),
+          imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+          isUrgent: post.post_type === 'lost',
+          reward: post.post_type === 'lost' ? '详议' : undefined // or actual DB reward if we add it
+        })));
+      }
+      setIsLoading(false);
+    };
+
+    fetchPets();
+  }, [activeTab, activeCategory]);
 
   // Banner Auto-play
   useEffect(() => {
@@ -79,8 +119,8 @@ export default function HomePage() {
           <button
             onClick={() => setActiveTab('adopt')}
             className={`flex-1 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'adopt'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+              ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm'
+              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
           >
             领养中心
@@ -88,8 +128,8 @@ export default function HomePage() {
           <button
             onClick={() => setActiveTab('lost')}
             className={`flex-1 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'lost'
-                ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+              ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
+              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
           >
             寻宠启事
@@ -105,8 +145,8 @@ export default function HomePage() {
                 key={id}
                 onClick={() => setActiveCategory(id as 'dog' | 'cat')}
                 className={`px-6 py-1.5 rounded-full text-sm font-medium shrink-0 transition-colors ${isActive
-                    ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
               >
                 {cat}
@@ -169,8 +209,12 @@ export default function HomePage() {
 
         {/* List */}
         <div className="space-y-4">
-          {filteredPets.length > 0 ? (
-            filteredPets.map((pet) => (
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+            </div>
+          ) : pets.length > 0 ? (
+            pets.map((pet) => (
               <PetCard
                 key={pet.id}
                 id={pet.id}
@@ -204,8 +248,8 @@ export default function HomePage() {
                   key={city}
                   onClick={() => { setCurrentCity(city); setShowCitySheet(false); }}
                   className={`py-3 rounded-xl text-sm font-medium transition-colors ${currentCity === city
-                      ? 'bg-amber-500/10 text-amber-500 border border-amber-500/50'
-                      : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/50'
+                    : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-700'
                     }`}
                 >
                   {city}

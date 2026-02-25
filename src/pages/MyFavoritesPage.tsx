@@ -1,25 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft, Bookmark, Loader2 } from 'lucide-react';
 import PetCard from '../components/PetCard';
-import { MOCK_PETS } from '../data/mockData';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+// Helper for formatting time
+const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return '今天';
+    if (days === 1) return '昨天';
+    return `${days}天前`;
+};
 
 export default function MyFavoritesPage() {
     const navigate = useNavigate();
-    // 模拟收藏数据，包含一条正常数据和一条模拟"已结案"的数据作为演示
-    const [favorites, setFavorites] = useState([
-        MOCK_PETS[0],
-        { ...MOCK_PETS[1], isResolved: true } // 模拟添加已结案的标记
-    ]);
+    const { user } = useAuth();
+    const [favorites, setFavorites] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const removeFavorite = (e: React.MouseEvent, id: string) => {
+    useEffect(() => {
+        const fetchFavorites = async () => {
+            setIsLoading(true);
+            if (!user) {
+                setFavorites([]);
+                setIsLoading(false);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('favorites')
+                .select(`
+                  post_id,
+                  posts (*)
+                `)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                const validPosts = data.map(f => f.posts).filter(p => p !== null) as any[];
+                setFavorites(validPosts.map(post => ({
+                    id: post.id,
+                    name: post.title.split(' ')[0] || post.title,
+                    breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+                    location: post.location,
+                    time: formatTimeAgo(post.created_at),
+                    imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
+                    isResolved: post.status === '已结案'
+                })));
+            }
+            setIsLoading(false);
+        };
+        fetchFavorites();
+    }, [user]);
+
+    const removeFavorite = async (e: React.MouseEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation();
         const confirmRemove = window.confirm('确认取消收藏该宠物吗？');
-        if (confirmRemove) {
-            setFavorites(prev => prev.filter(pet => pet.id !== id));
-            // 真实项目中这里还会使用 Toast 动画
-            alert('已取消收藏');
+        if (confirmRemove && user) {
+            const { error } = await supabase
+                .from('favorites')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('post_id', id);
+
+            if (!error) {
+                setFavorites(prev => prev.filter(pet => pet.id !== id));
+            } else {
+                alert('取消收藏失败，请稍后重试');
+            }
         }
     };
 
@@ -36,7 +87,11 @@ export default function MyFavoritesPage() {
             </header>
 
             <main className="flex-1 p-5">
-                {favorites.length > 0 ? (
+                {isLoading ? (
+                    <div className="h-[60vh] flex flex-col items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+                    </div>
+                ) : favorites.length > 0 ? (
                     <div className="space-y-6">
                         {favorites.map(pet => (
                             <div key={pet.id} className="relative group cursor-pointer" onClick={() => navigate(`/detail/${pet.id}`)}>
