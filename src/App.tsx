@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
+import GuideListPage from './pages/GuideListPage';
 import FeedbackPage from './pages/FeedbackPage';
 import EditProfilePage from './pages/EditProfilePage';
 import SettingsPage from './pages/SettingsPage';
@@ -93,6 +94,7 @@ export default function App() {
 
       {/* Detail Page (Public but no BottomNav) */}
       <Route path="/detail/:id" element={<PetDetailPage />} />
+      <Route path="/guides" element={<GuideListPage />} />
 
       {/* Main Layout with BottomNav */}
       <Route element={<Layout />}>

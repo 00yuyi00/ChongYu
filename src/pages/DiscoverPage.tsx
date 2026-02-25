@@ -130,40 +130,33 @@ export default function DiscoverPage() {
             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">养宠指南</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#FFF9E6] dark:bg-[#2C281A] p-5 rounded-3xl relative overflow-hidden h-44 flex flex-col justify-between group active:scale-95 transition-transform cursor-pointer shadow-sm">
+            <div
+              onClick={() => navigate('/guides?type=dog')}
+              className="bg-[#FFF5E5] dark:bg-[#3A2D1B] p-4 rounded-2xl relative overflow-hidden h-28 flex flex-col justify-between group active:scale-95 transition-transform cursor-pointer shadow-sm"
+            >
+              {/* Decorative Circle */}
+              <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute -right-2 -bottom-2 w-16 h-16 bg-amber-500/10 dark:bg-amber-500/5 rounded-full"></div>
+
               <div className="z-10">
-                <h3 className="text-[#8B6E2F] dark:text-[#E6C37A] font-bold text-lg">狗狗养宠指南</h3>
-                <p className="text-[#8B6E2F]/70 dark:text-[#E6C37A]/70 text-xs mt-1">新手养狗必看攻略</p>
-              </div>
-              <div className="absolute -right-4 -bottom-4 opacity-40 group-hover:scale-110 transition-transform">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXOLyeGqouUYyYqwbv58AlbXH6jKbXxqeiuAdH60GJE05wDKxVR5dyaSoopJdkDG38DkC9ZFNi9ikeHDlDEqqYxbqyRWoWC9_MYWEDzHrNE0iQx7CFzenODKD6pidPHw2hq4Xb3AZRck20sIuR6DFz8pEPtt2mCYNoPvz3sninkrlWwnQDVg37kSMAURxgYqVvaiLtLbAg1gcbxfta2toaBqim-boIZLrlfzavpd_22n7v9Fh9QA8DxDVjC2E7R-SjNZNeGx04YvsV"
-                  alt="Dog Icon"
-                  className="w-24 h-24"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <div className="z-10 flex items-center gap-1">
-                <BookOpen className="w-3 h-3 text-[#8B6E2F] dark:text-[#E6C37A]" />
-                <span className="text-[10px] text-[#8B6E2F] dark:text-[#E6C37A] font-medium">{dogGuideCount} 篇文章</span>
+                <div className="text-xl mb-2">🐶</div>
+                <h3 className="text-[#8B5E34] dark:text-[#E6C37A] font-bold text-[15px] tracking-tight truncate">狗狗养宠指南</h3>
+                <p className="text-[#A68A6B] dark:text-[#E6C37A]/70 text-[11px] mt-1 truncate">新手养狗必看攻略</p>
               </div>
             </div>
-            <div className="bg-[#E6F4FF] dark:bg-[#1A232E] p-5 rounded-3xl relative overflow-hidden h-44 flex flex-col justify-between group active:scale-95 transition-transform cursor-pointer shadow-sm">
+
+            <div
+              onClick={() => navigate('/guides?type=cat')}
+              className="bg-[#F0F5FF] dark:bg-[#1E2638] p-4 rounded-2xl relative overflow-hidden h-28 flex flex-col justify-between group active:scale-95 transition-transform cursor-pointer shadow-sm"
+            >
+              {/* Decorative Circle */}
+              <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute -right-2 -bottom-2 w-16 h-16 bg-blue-500/10 dark:bg-blue-500/5 rounded-full"></div>
+
               <div className="z-10">
-                <h3 className="text-[#2F658B] dark:text-[#7ABCE6] font-bold text-lg">猫咪养宠指南</h3>
-                <p className="text-[#2F658B]/70 dark:text-[#7ABCE6]/70 text-xs mt-1">给主人的猫科秘籍</p>
-              </div>
-              <div className="absolute -right-4 -bottom-4 opacity-40 group-hover:scale-110 transition-transform">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA25y-51bOL1YZ_Je3bd9V00W10h4AEhygR7-4CylWLwUXBvMSNX4b9X8SgZfIgvVlz_ON-3Vbqr4xcrJhgaPURwQ8npeTel3Jo9Dmv1CYiGt_8yBHRIh1rMf-Q9MTmygxm7Qlr75RkJa0fdg0aPTbTCffO7zL4TcS78s6Mmj523lknsk3yGYwrFbQRApk4Ht2_-IlPkjqEgZWbSuhBhVPsmfg1MLlTfrllYsI_mvPqHTvTWFyRsh9FhOfaYQUJ1bDas__VYI3A9M6K"
-                  alt="Cat Icon"
-                  className="w-24 h-24"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <div className="z-10 flex items-center gap-1">
-                <BookOpen className="w-3 h-3 text-[#2F658B] dark:text-[#7ABCE6]" />
-                <span className="text-[10px] text-[#2F658B] dark:text-[#7ABCE6] font-medium">{catGuideCount} 篇文章</span>
+                <div className="text-xl mb-2">🐱</div>
+                <h3 className="text-[#3A5B8C] dark:text-[#7ABCE6] font-bold text-[15px] tracking-tight truncate">猫咪养宠指南</h3>
+                <p className="text-[#6B8BA6] dark:text-[#7ABCE6]/70 text-[11px] mt-1 truncate">给主人的猫科秘籍</p>
               </div>
             </div>
           </div>
