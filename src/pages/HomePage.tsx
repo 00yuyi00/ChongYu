@@ -15,7 +15,7 @@ const formatTimeAgo = (dateStr: string) => {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'adopt' | 'lost'>('lost');
+  const [activeTab, setActiveTab] = useState<'adopt' | 'lost'>('adopt');
   const [activeCategory, setActiveCategory] = useState<'dog' | 'cat'>('dog');
   const [currentBanner, setCurrentBanner] = useState(0);
   const [pets, setPets] = useState<any[]>([]);
@@ -242,15 +242,15 @@ export default function HomePage() {
           <div className="bg-white dark:bg-zinc-900 rounded-t-3xl w-full max-w-md mx-auto relative p-6 pb-12 animate-in slide-in-from-bottom-full duration-300 shadow-2xl">
             <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-6" />
             <h3 className="text-lg font-bold text-center mb-6 text-zinc-900 dark:text-zinc-100">选择城市</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {['上海市', '北京市', '广州市', '深圳市', '成都市', '杭州市'].map(city => (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {['上海市', '北京市', '广州市', '深圳市', '成都市'].map((city, index) => (
                 <button
                   key={city}
                   onClick={() => { setCurrentCity(city); setShowCitySheet(false); }}
                   className={`py-3 rounded-xl text-sm font-medium transition-colors ${currentCity === city
                     ? 'bg-amber-500/10 text-amber-500 border border-amber-500/50'
                     : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                    }`}
+                    } ${index === 4 ? 'col-span-2 md:col-span-1' : ''}`}
                 >
                   {city}
                 </button>

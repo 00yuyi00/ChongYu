@@ -262,16 +262,13 @@ export default function PublishPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 ml-1">品种</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={formData.breed}
-                  onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
-                  placeholder="选择宠物品种"
-                  className="w-full bg-white dark:bg-zinc-800 border-none focus:ring-2 focus:ring-amber-500 rounded-2xl py-4 px-5 text-sm shadow-sm pr-10"
-                />
-                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-              </div>
+              <input
+                type="text"
+                value={formData.breed}
+                onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+                placeholder="请输入宠物品种"
+                className="w-full bg-white dark:bg-zinc-800 border-none focus:ring-2 focus:ring-amber-500 rounded-2xl py-4 px-5 text-sm shadow-sm"
+              />
             </div>
 
             <div className="space-y-2">
