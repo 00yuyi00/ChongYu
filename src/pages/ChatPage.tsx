@@ -9,6 +9,7 @@ interface Message {
   sender_id: string;
   receiver_id: string;
   content: string;
+  type: 'text' | 'image';
   created_at: string;
 }
 
@@ -22,7 +23,9 @@ export default function ChatPage() {
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -99,7 +102,8 @@ export default function ChatPage() {
         .insert({
           sender_id: user.id,
           receiver_id: otherUserId,
-          content: content
+          content: content,
+          type: 'text'
         })
         .select()
         .single();
@@ -113,6 +117,42 @@ export default function ChatPage() {
       alert('消息发送失败');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !otherUserId || isUploading) return;
+
+    try {
+      setIsUploading(true);
+
+      // 1. 上传图片到 storage
+      const { uploadImage } = await import('../lib/storage');
+      const imageUrl = await uploadImage(file, 'chat');
+
+      // 2. 插入消息
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          content: imageUrl,
+          type: 'image'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setMessages(prev => [...prev, data]);
+      }
+    } catch (err) {
+      console.error('Upload image error:', err);
+      alert('图片发送失败');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -166,14 +206,25 @@ export default function ChatPage() {
                   <div
                     className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender_id === user?.id
-                        ? 'bg-amber-500 text-white rounded-tr-none'
-                        : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
-                        }`}
-                    >
-                      {msg.content}
-                    </div>
+                    {msg.type === 'image' ? (
+                      <div className="max-w-[70%]">
+                        <img
+                          src={msg.content}
+                          alt="聊天图片"
+                          className="rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm max-h-60 object-cover"
+                          onClick={() => window.open(msg.content, '_blank')}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender_id === user?.id
+                          ? 'bg-amber-500 text-white rounded-tr-none'
+                          : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
+                          }`}
+                      >
+                        {msg.content}
+                      </div>
+                    )}
                   </div>
                   <div className={`text-[10px] text-zinc-400 px-1 ${msg.sender_id === user?.id ? 'text-right' : 'text-left'}`}>
                     {formatTime(msg.created_at)}
@@ -188,8 +239,20 @@ export default function ChatPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 p-4 max-w-md mx-auto">
         <div className="flex items-center gap-3">
-          <button className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors" title="发送图片">
-            <Image className="w-6 h-6" />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+          />
+          <button
+            className={`p-2 transition-colors ${isUploading ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+            title="发送图片"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Image className="w-6 h-6" />}
           </button>
           <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-4 py-2 flex items-center">
             <input
