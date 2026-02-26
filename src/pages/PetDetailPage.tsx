@@ -41,7 +41,8 @@ export default function PetDetailPage() {
 
         // 第二步：单独查发布者资料（查询失败不影响帖子显示）
         const avatarColor = data.user_id ? data.user_id.replace(/-/g, '').slice(-6) : 'f59e0b';
-        let publisherInfo = { id: data.user_id, name: '匿名用户', avatar: `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`, verified: false };
+        const fallbackName = '用户' + (data.user_id ? data.user_id.slice(0, 4) : '未知');
+        let publisherInfo = { id: data.user_id, name: fallbackName, avatar: `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`, verified: false };
         try {
           const { data: profile } = await supabase
             .from('profiles')
@@ -51,7 +52,7 @@ export default function PetDetailPage() {
           if (profile) {
             publisherInfo = {
               id: profile.id,
-              name: profile.name || '匿名用户',
+              name: profile.name || fallbackName,
               avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=${avatarColor}&color=fff`,
               verified: true
             };
