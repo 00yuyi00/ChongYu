@@ -18,6 +18,7 @@ export default function DiscoverPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [favoritePets, setFavoritePets] = useState<any[]>([]);
+  const [favoriteCount, setFavoriteCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // 真实查询当前用户的收藏帖子 (最多展示前两位)
@@ -35,20 +36,22 @@ export default function DiscoverPage() {
         }
 
         setIsLoading(true);
-        const { data, error } = await supabase
+        // 同时获取前两位和总数 (使用 count: 'exact')
+        const { data, error, count } = await supabase
           .from('favorites')
           .select(`
             post_id,
             posts (*)
-          `)
+          `, { count: 'exact' })
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(2);
 
         if (error) throw error;
 
-        if (isMounted && data) {
-          const validPosts = data.map(f => f.posts).filter(p => p !== null) as any[];
+        if (isMounted) {
+          if (count !== null) setFavoriteCount(count);
+          const validPosts = (data || []).map(f => f.posts).filter(p => p !== null) as any[];
           setFavoritePets(validPosts.map(post => ({
             id: post.id,
             name: post.nickname || '未知',
@@ -132,7 +135,7 @@ export default function DiscoverPage() {
           >
             <div className="flex items-center gap-2">
               <Heart className="w-5 h-5 fill-red-500 text-red-500" />
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors">我的收藏 ({favoritePets.length})</h2>
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors">我的收藏 ({isLoading ? '...' : favoriteCount})</h2>
             </div>
             <div className="text-zinc-400 group-hover:text-amber-500 transition-colors flex items-center">
               <ChevronRight className="w-5 h-5" />

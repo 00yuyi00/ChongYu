@@ -2,10 +2,36 @@ import React from 'react';
 import { Settings, ChevronRight, FileText, Heart, HelpCircle, LogOut, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [postCount, setPostCount] = React.useState<number | null>(null);
+  const [favoriteCount, setFavoriteCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const fetchCounts = async () => {
+      // 获取发布数
+      const { count: pCount } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // 获取收藏数
+      const { count: fCount } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setPostCount(pCount);
+      setFavoriteCount(fCount);
+    };
+
+    fetchCounts();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -56,7 +82,10 @@ export default function ProfilePage() {
               </div>
               <span className="font-medium text-zinc-900 dark:text-zinc-100">我的发布</span>
             </div>
-            <ChevronRight className="w-5 h-5 text-zinc-400" />
+            <div className="flex items-center gap-1">
+              {postCount !== null && <span className="text-xs text-zinc-400 font-medium bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{postCount}</span>}
+              <ChevronRight className="w-5 h-5 text-zinc-400" />
+            </div>
           </button>
           <button onClick={() => navigate('/profile/favorites')} className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors border-b border-zinc-100 dark:border-zinc-700/50">
             <div className="flex items-center gap-3">
@@ -65,7 +94,10 @@ export default function ProfilePage() {
               </div>
               <span className="font-medium text-zinc-900 dark:text-zinc-100">我的收藏</span>
             </div>
-            <ChevronRight className="w-5 h-5 text-zinc-400" />
+            <div className="flex items-center gap-1">
+              {favoriteCount !== null && <span className="text-xs text-zinc-400 font-medium bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{favoriteCount}</span>}
+              <ChevronRight className="w-5 h-5 text-zinc-400" />
+            </div>
           </button>
           <button onClick={() => navigate('/profile/applications')} className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
             <div className="flex items-center gap-3">
