@@ -102,7 +102,10 @@ export default function GuideDetailPage() {
                 {/* Article Body */}
                 <div className="prose prose-zinc dark:prose-invert max-w-none">
                     <div
-                        className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-[16px] space-y-6 whitespace-pre-line"
+                        className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-[16px] space-y-6 whitespace-pre-line
+                                   [&_img]:w-full [&_img]:rounded-2xl [&_img]:my-6 [&_img]:shadow-md
+                                   [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-zinc-900 [&_h3]:dark:text-zinc-100 [&_h3]:mt-8 [&_h3]:mb-4
+                                   [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_li]:pl-1"
                         dangerouslySetInnerHTML={{ __html: guide.content }}
                     />
                 </div>
