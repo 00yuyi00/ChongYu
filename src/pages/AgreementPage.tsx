@@ -56,8 +56,8 @@ export default function AgreementPage() {
         images: imageUrls,
         location: postData.location,
         status: '展示中',
-        // 新增字段
-        nickname: postData.nickname || '',
+        // 新增字段：如果用户没填昵称（寻宠/捡到通常不填），则同步使用档案里的昵称
+        nickname: postData.nickname || user.name || '',
         breed: postData.breed || '',
         age: postData.age || '',
         phone: postData.phone || '',
