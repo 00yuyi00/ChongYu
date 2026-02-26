@@ -51,14 +51,14 @@ export default function DiscoverPage() {
           const validPosts = data.map(f => f.posts).filter(p => p !== null) as any[];
           setFavoritePets(validPosts.map(post => ({
             id: post.id,
-            name: post.title?.split(' ')[0] || post.title || '未知',
-            breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+            name: post.nickname || '未知',
+            breed: post.breed || '',
             location: post.location || '未知位置',
             time: formatTimeAgo(post.created_at),
             imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-            isUrgent: post.post_type === 'lost',
-            reward: post.post_type === 'lost' ? '详议' : undefined,
-            status: post.status
+            isUrgent: post.post_type === 'lost' || post.post_type === 'seek',
+            reward: post.reward_amount ? `¥${post.reward_amount}` : undefined,
+            postType: post.post_type
           })));
         }
       } catch (err) {

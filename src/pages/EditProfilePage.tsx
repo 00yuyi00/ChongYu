@@ -11,7 +11,7 @@ export default function EditProfilePage() {
   const [name, setName] = useState(user?.name || '');
   const [avatar, setAvatar] = useState(user?.avatar || 'https://i.pravatar.cc/150?u=user');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [bio, setBio] = useState('热爱生活，热爱宠物。');
+  const [bio, setBio] = useState(user?.bio || '热爱生活，热爱宠物。');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -31,7 +31,8 @@ export default function EditProfilePage() {
         .from('profiles')
         .update({
           name: name,
-          avatar_url: finalAvatarUrl
+          avatar_url: finalAvatarUrl,
+          bio: bio
         })
         .eq('id', user.id);
 

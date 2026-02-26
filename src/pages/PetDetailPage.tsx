@@ -37,8 +37,8 @@ export default function PetDetailPage() {
       if (!error && data) {
         setPet({
           id: data.id,
-          name: data.nickname || data.title.split(' ')[0] || data.title,
-          breed: data.breed || (data.title.split(' ').length > 1 ? data.title.split(' ')[1] : ''),
+          name: data.nickname || '未知',
+          breed: data.breed || '',
           location: data.location,
           time: formatTimeAgo(data.created_at),
           imageUrl: data.images && data.images.length > 0 ? data.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
@@ -54,7 +54,7 @@ export default function PetDetailPage() {
           },
           age: data.age || '未知',
           health: `${data.vaccine !== 'unknown' ? '已免疫 ' : ''}${data.sterilization !== 'unknown' ? '已绝育' : ''}`.trim() || '疫苗/驱虫请私聊确认',
-          phone: data.is_private ? '仅注册可见' : (data.phone || '未留电话'),
+          phone: user ? (data.phone || '未留电话') : '登录后可见',
           requirements: data.requirements || []
         });
 
@@ -171,7 +171,9 @@ export default function PetDetailPage() {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{pet.name}</h1>
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                {(pet.status === 'adopt' ? pet.name : (pet.breed || pet.name)).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()（）！，。？：；“”‘’]/g, "").trim()}
+              </h1>
               {pet.status === 'lost' ? (
                 <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs px-2 py-0.5 rounded-full font-medium border border-red-200 dark:border-red-800">
                   寻宠中

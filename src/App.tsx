@@ -19,6 +19,7 @@ import SettingsPage from './pages/SettingsPage';
 import MyFavoritesPage from './pages/MyFavoritesPage';
 import MyPostsPage from './pages/MyPostsPage';
 import MyApplicationsPage from './pages/MyApplicationsPage';
+import GuideDetailPage from './pages/GuideDetailPage';
 
 // Admin Pages
 import AdminLayout from './layouts/AdminLayout';
@@ -95,6 +96,7 @@ export default function App() {
       {/* Detail Page (Public but no BottomNav) */}
       <Route path="/detail/:id" element={<PetDetailPage />} />
       <Route path="/guides" element={<GuideListPage />} />
+      <Route path="/guides/:id" element={<GuideDetailPage />} />
 
       {/* Main Layout with BottomNav */}
       <Route element={<Layout />}>

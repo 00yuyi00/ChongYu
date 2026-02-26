@@ -266,7 +266,7 @@ export default function PublishPage() {
                 type="text"
                 value={formData.breed}
                 onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
-                placeholder="请输入宠物品种"
+                placeholder="品种（看不出来写疑似）"
                 className="w-full bg-white dark:bg-zinc-800 border-none focus:ring-2 focus:ring-amber-500 rounded-2xl py-4 px-5 text-sm shadow-sm"
               />
             </div>
@@ -316,6 +316,34 @@ export default function PublishPage() {
                 />
               </div>
             )}
+
+            <div className="space-y-2 mt-4">
+              <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 ml-1">品种</label>
+              <input
+                type="text"
+                value={formData.breed}
+                onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+                placeholder="品种（看不出来写疑似）"
+                className="w-full bg-white dark:bg-zinc-800 border-none focus:ring-2 focus:ring-amber-500 rounded-2xl py-4 px-5 text-sm shadow-sm"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Found Specific Fields */}
+        {publishType === 'found' && (
+          <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">捡到信息</h3>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 ml-1">品种</label>
+              <input
+                type="text"
+                value={formData.breed}
+                onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+                placeholder="品种（看不出来写疑似）"
+                className="w-full bg-white dark:bg-zinc-800 border-none focus:ring-2 focus:ring-amber-500 rounded-2xl py-4 px-5 text-sm shadow-sm"
+              />
+            </div>
           </div>
         )}
 

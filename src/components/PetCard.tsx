@@ -12,6 +12,7 @@ interface PetCardProps {
   tags?: { text: string; color: string }[];
   reward?: string;
   isUrgent?: boolean;
+  postType?: 'seek' | 'found' | 'adopt' | 'lost';
 }
 
 const PetCard: React.FC<PetCardProps> = ({
@@ -24,14 +25,23 @@ const PetCard: React.FC<PetCardProps> = ({
   tags,
   reward,
   isUrgent,
+  postType,
 }) => {
+  // Logic for title: seek/found/lost shows breed, adopt shows name
+  const rawTitle = (postType === 'adopt' ? name : (breed || name)) || '宠物';
+  // Remove punctuation
+  const cleanTitle = rawTitle.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()（）！，。？：；“”‘’]/g, "").trim();
+
+  // Label for reward area
+  const rewardLabel = postType === 'adopt' ? '领养费' : '赏金';
+
   return (
     <Link to={`/detail/${id}`} className="block">
       <div className="flex bg-white dark:bg-zinc-800 rounded-2xl p-3 shadow-sm border border-zinc-100 dark:border-zinc-700/50 active:scale-[0.98] transition-transform">
         <div className="relative w-32 h-32 rounded-xl overflow-hidden shrink-0">
           <img
             src={imageUrl}
-            alt={name}
+            alt={cleanTitle}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
@@ -45,7 +55,7 @@ const PetCard: React.FC<PetCardProps> = ({
           <div>
             <div className="flex justify-between items-start">
               <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 truncate">
-                {name}, {breed}
+                {cleanTitle}
               </h3>
             </div>
             <div className="flex items-center text-zinc-500 dark:text-zinc-400 text-xs mt-1">
@@ -54,17 +64,13 @@ const PetCard: React.FC<PetCardProps> = ({
             </div>
             <div className="text-zinc-400 text-[10px] mt-1">{time}</div>
           </div>
-          
+
           <div className="flex justify-between items-end mt-2">
-            {reward ? (
+            <div className="flex flex-col">
               <span className="text-amber-500 font-bold text-lg">
-                赏金: {reward}
+                {rewardLabel}: {reward || '详议'}
               </span>
-            ) : (
-              <span className="text-amber-500 font-bold text-sm bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-lg">
-                待领养
-              </span>
-            )}
+            </div>
             <button className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full text-xs font-bold">
               查看详情
             </button>

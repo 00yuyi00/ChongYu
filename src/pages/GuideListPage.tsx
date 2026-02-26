@@ -49,9 +49,7 @@ export default function GuideListPage() {
     }, [type]);
 
     const handleArticleClick = (id: string) => {
-        // Navigate to article detail page. Assume we have or will have /guides/:id
-        // If not, we can just alert for now.
-        alert('文章详情页还在开发中哦！');
+        navigate(`/guides/${id}`);
     };
 
     return (

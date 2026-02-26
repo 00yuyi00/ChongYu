@@ -50,8 +50,8 @@ export default function AgreementPage() {
         user_id: user.id,
         post_type: postData.publishType,
         pet_type: postData.petType,
-        // 标题只使用昵称或品种，不带后缀
-        title: postData.nickname || postData.breed || '寻宠/送养信息',
+        // 标题：寻宠/捡到宠使用品种，送养使用昵称
+        title: postData.publishType === 'adopt' ? (postData.nickname || '待领养的小可爱') : (postData.breed || '寻宠/送养信息'),
         description: postData.description,
         images: imageUrls,
         location: postData.location,

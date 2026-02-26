@@ -53,20 +53,16 @@ export default function HomePage() {
 
         if (isMounted && data) {
           setPets(data.map(post => {
-            // Clean up old titles that might still have suffixes
-            let cleanName = post.title?.split(' ')[0] || post.title || '未知';
-            cleanName = cleanName.replace(/寻宠/g, '').replace(/送养/g, '').trim();
-            if (!cleanName) cleanName = '宠物';
-
             return {
               id: post.id,
-              name: cleanName,
-              breed: post.title?.split(' ').length > 1 ? post.title.split(' ')[1].replace(/寻宠/g, '').replace(/送养/g, '') : '',
+              name: post.nickname || '宠物',
+              breed: post.breed || '',
               location: post.location || '未知位置',
               time: formatTimeAgo(post.created_at),
               imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
               isUrgent: post.post_type === 'lost' || post.post_type === 'seek',
-              reward: (post.post_type === 'lost' || post.post_type === 'seek') ? '详议' : undefined
+              reward: post.reward_amount ? `¥${post.reward_amount}` : undefined,
+              postType: post.post_type
             };
           }));
         }

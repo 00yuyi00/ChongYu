@@ -38,7 +38,10 @@ export default function ProfilePage() {
           </div>
           <div className="cursor-pointer">
             <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">{user?.name || '未登录用户'}</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">ID: 8839201</p>
+            <p className="text-xs text-zinc-400 mb-1">ID: 8839201</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 italic">
+              {user?.bio || '热爱生活，热爱宠物。'}
+            </p>
           </div>
         </div>
 

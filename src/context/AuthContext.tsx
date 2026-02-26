@@ -7,6 +7,7 @@ interface User {
   name: string;
   avatar: string;
   email: string;
+  bio?: string;
 }
 
 interface AuthContextType {
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: auth_user.email || '',
           name: profile?.name || auth_user.user_metadata?.name || auth_user.email?.split('@')[0] || 'User',
           avatar: profile?.avatar_url || auth_user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${auth_user.email?.split('@')[0] || 'U'}&background=random`,
+          bio: profile?.bio || '热爱生活，热爱宠物。',
         });
       }
     } catch (e) {

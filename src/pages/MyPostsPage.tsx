@@ -33,13 +33,14 @@ export default function MyPostsPage() {
             if (!error && data) {
                 setPosts(data.map(post => ({
                     id: post.id,
-                    name: post.title.split(' ')[0] || post.title,
-                    breed: post.title.split(' ').length > 1 ? post.title.split(' ')[1] : '',
+                    name: post.nickname || '未知',
+                    breed: post.breed || '',
                     location: post.location,
                     time: formatTimeAgo(post.created_at),
                     imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
                     postStatus: post.status,
-                    postType: post.post_type
+                    postType: post.post_type,
+                    reward: post.reward_amount ? `¥${post.reward_amount}` : undefined
                 })));
             }
             setIsLoading(false);
@@ -50,9 +51,9 @@ export default function MyPostsPage() {
     const handleFinish = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (window.confirm('确认该帖已解决并下架吗？')) {
-            const { error } = await supabase.from('posts').update({ status: '已结案' }).eq('id', id);
+            const { error } = await supabase.from('posts').update({ status: '已下架' }).eq('id', id);
             if (!error) {
-                setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已结案' } : p));
+                setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已下架' } : p));
             } else {
                 alert('操作失败');
             }
@@ -117,7 +118,9 @@ export default function MyPostsPage() {
                                     <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                                         <div>
                                             <div className="flex justify-between items-start mb-1">
-                                                <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate pr-2">{post.name}, {post.breed}</h3>
+                                                <h3 className="font-bold text-zinc-900 dark:text-zinc-100 truncate pr-2">
+                                                    {(post.postType === 'adopt' ? post.name : (post.breed || post.name)).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()（）！，。？：；“”‘’]/g, "").trim()}
+                                                </h3>
                                                 <span className={`text-xs px-2 py-0.5 rounded focus:outline-none shrink-0 ${post.postStatus === '展示中' ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' :
                                                     post.postStatus === '审核中' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' :
                                                         post.postStatus === '被驳回' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' :
@@ -139,15 +142,8 @@ export default function MyPostsPage() {
                                 </div>
 
                                 {/* 专属操作栏 */}
-                                {post.postStatus !== '已结案' && (
+                                {post.postStatus !== '已下架' && post.postStatus !== '已结案' && (
                                     <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700/50">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); navigate('/publish'); }} // Mock edit
-                                            className="flex items-center gap-1 px-4 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                            修改信息
-                                        </button>
                                         <button
                                             onClick={(e) => handleFinish(e, post.id)}
                                             className="flex items-center gap-1 px-4 py-1.5 rounded-full border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 text-sm font-medium hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
