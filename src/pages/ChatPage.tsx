@@ -120,6 +120,11 @@ export default function ChatPage() {
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  };
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-zinc-50 dark:bg-zinc-900 flex flex-col relative">
       <header className="flex items-center justify-between px-4 py-4 sticky top-0 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-md z-10 border-b border-zinc-200 dark:border-zinc-800">
@@ -143,25 +148,40 @@ export default function ChatPage() {
         ) : messages.length === 0 ? (
           <div className="text-center py-10 text-zinc-400 text-sm">暂无消息，打个招呼吧 ~</div>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="flex flex-col gap-1">
-              <div
-                className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender_id === user?.id
-                    ? 'bg-amber-500 text-white rounded-tr-none'
-                    : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
-                    }`}
-                >
-                  {msg.content}
+          messages.map((msg, index) => {
+            const prevMsg = index > 0 ? messages[index - 1] : null;
+            const showDate = !prevMsg ||
+              new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString();
+
+            return (
+              <React.Fragment key={msg.id}>
+                {showDate && (
+                  <div className="flex justify-center my-4">
+                    <span className="text-[10px] text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800/50 px-3 py-1 rounded-full font-medium">
+                      {formatFullDate(msg.created_at)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <div
+                    className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender_id === user?.id
+                        ? 'bg-amber-500 text-white rounded-tr-none'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50'
+                        }`}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                  <div className={`text-[10px] text-zinc-400 px-1 ${msg.sender_id === user?.id ? 'text-right' : 'text-left'}`}>
+                    {formatTime(msg.created_at)}
+                  </div>
                 </div>
-              </div>
-              <div className={`text-[10px] text-zinc-400 px-1 ${msg.sender_id === user?.id ? 'text-right' : 'text-left'}`}>
-                {formatTime(msg.created_at)}
-              </div>
-            </div>
-          ))
+              </React.Fragment>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </main>
