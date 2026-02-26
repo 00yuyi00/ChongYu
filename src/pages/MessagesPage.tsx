@@ -65,14 +65,15 @@ export default function MessagesPage() {
         const finalChats: ChatPreview[] = partnerIds.map(pid => {
           const profile = profiles?.find(p => p.id === pid);
           const meta = partnerMap.get(pid);
+          const avatarColor = pid.replace(/-/g, '').slice(-6);
           return {
             partnerId: pid,
-            name: profile?.name || '未知用户',
-            avatar: profile?.avatar_url || 'https://i.pravatar.cc/150',
+            name: profile?.name || '用户' + pid.slice(0, 4),
+            avatar: profile?.avatar_url || `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`,
             lastMessage: meta.lastMessage,
             time: formatChatTime(meta.time),
             unread: 0,
-            online: false // Supabase 后续可配合 Realtime Presence
+            online: false
           };
         });
 

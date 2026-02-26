@@ -36,12 +36,32 @@ export default function ChatPage() {
 
     // 1. 获取对方信息
     const fetchOtherUser = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', otherUserId)
-        .single();
-      setOtherUser(data);
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', otherUserId)
+          .maybeSingle();
+
+        if (data) {
+          setOtherUser(data);
+        } else {
+          // 降级显示
+          const avatarColor = otherUserId.replace(/-/g, '').slice(-6);
+          setOtherUser({
+            id: otherUserId,
+            name: '用户' + otherUserId.slice(0, 4),
+            avatar_url: `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`
+          });
+        }
+      } catch (_) {
+        const avatarColor = otherUserId.replace(/-/g, '').slice(-6);
+        setOtherUser({
+          id: otherUserId,
+          name: '用户' + otherUserId.slice(0, 4),
+          avatar_url: `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`
+        });
+      }
     };
 
     // 2. 获取历史消息
