@@ -16,7 +16,7 @@ const formatTimeAgo = (dateStr: string) => {
 export default function MyPostsPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'all' | 'lost' | 'found' | 'adopt'>('all');
+    const [activeTab, setActiveTab] = useState<'all' | 'seek' | 'found' | 'adopt'>('all');
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -64,7 +64,7 @@ export default function MyPostsPage() {
 
     const tabs = [
         { id: 'all', label: '全部' },
-        { id: 'lost', label: '寻宠' },
+        { id: 'seek', label: '寻宠' },
         { id: 'found', label: '捡到' },
         { id: 'adopt', label: '送养' },
     ] as const;

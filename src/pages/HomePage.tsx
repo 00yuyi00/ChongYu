@@ -44,7 +44,7 @@ export default function HomePage() {
         if (activeTab === 'adopt') {
           query = query.eq('post_type', 'adopt');
         } else {
-          query = query.in('post_type', ['lost', 'found', 'seek']); // include 'seek'
+          query = query.in('post_type', ['seek', 'found']);
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });
@@ -102,7 +102,7 @@ export default function HomePage() {
   const handleBannerClick = (index: number) => {
     if (index === 0) {
       // Banner 1: Urgent Search -> Lost Pets
-      setActiveTab('lost');
+      setActiveTab('seek');
       // In a real app, we might also sort by time or filter by urgent
     } else {
       // Banner 2: Daily Recommendation -> Guide Detail
@@ -178,8 +178,8 @@ export default function HomePage() {
             领养中心
           </button>
           <button
-            onClick={() => setActiveTab('lost')}
-            className={`flex-1 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'lost'
+            onClick={() => setActiveTab('seek')}
+            className={`flex-1 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'seek'
               ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
               : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}

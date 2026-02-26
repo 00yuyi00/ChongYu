@@ -56,7 +56,7 @@ export default function DiscoverPage() {
             location: post.location || '未知位置',
             time: formatTimeAgo(post.created_at),
             imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-            isUrgent: post.post_type === 'lost' || post.post_type === 'seek',
+            isUrgent: post.post_type === 'seek',
             reward: post.reward_amount ? `¥${post.reward_amount}` : undefined,
             postType: post.post_type,
             petType: post.pet_type

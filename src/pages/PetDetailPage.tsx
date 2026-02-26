@@ -25,16 +25,39 @@ export default function PetDetailPage() {
     const fetchPetData = async () => {
       if (!id) return;
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles:user_id (id, name, avatar_url)
-        `)
-        .eq('id', id)
-        .single();
+      try {
+        // 第一步：查帖子基本信息（不关联 profiles，避免 profiles RLS 导致整条查询失败）
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-      if (!error && data) {
+        if (error || !data) {
+          console.warn('获取帖子失败:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        // 第二步：单独查发布者资料（查询失败不影响帖子显示）
+        const avatarColor = data.user_id ? data.user_id.replace(/-/g, '').slice(-6) : 'f59e0b';
+        let publisherInfo = { id: data.user_id, name: '匿名用户', avatar: `https://ui-avatars.com/api/?name=U&background=${avatarColor}&color=fff`, verified: false };
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .eq('id', data.user_id)
+            .maybeSingle();
+          if (profile) {
+            publisherInfo = {
+              id: profile.id,
+              name: profile.name || '匿名用户',
+              avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=${avatarColor}&color=fff`,
+              verified: true
+            };
+          }
+        } catch (_) { /* 查不到资料也没关系 */ }
+
         setPet({
           id: data.id,
           name: data.nickname || '未知',
@@ -46,12 +69,7 @@ export default function PetDetailPage() {
           status: data.post_type,
           reward: data.reward_amount ? `¥${data.reward_amount}` : (data.post_type === 'seek' ? '详议' : undefined),
           description: data.description,
-          publisher: {
-            id: data.profiles.id,
-            name: data.profiles.name,
-            avatar: data.profiles.avatar_url,
-            verified: true
-          },
+          publisher: publisherInfo,
           age: data.age || '未知',
           health: `${data.vaccine !== 'unknown' ? '已免疫 ' : ''}${data.sterilization !== 'unknown' ? '已绝育' : ''}`.trim() || '疫苗/驱虫请私聊确认',
           phone: user ? (data.phone || '未留电话') : '登录后可见',
@@ -69,8 +87,11 @@ export default function PetDetailPage() {
             .maybeSingle();
           setIsFavorite(!!favData);
         }
+      } catch (err) {
+        console.warn('详情页加载失败:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchPetData();
