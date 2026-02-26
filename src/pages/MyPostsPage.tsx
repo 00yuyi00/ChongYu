@@ -51,9 +51,9 @@ export default function MyPostsPage() {
     const handleFinish = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (window.confirm('确认该帖已解决并下架吗？')) {
-            const { error } = await supabase.from('posts').update({ status: '已下架' }).eq('id', id);
+            const { error } = await supabase.from('posts').update({ status: '已结案' }).eq('id', id);
             if (!error) {
-                setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已下架' } : p));
+                setPosts(prev => prev.map(p => p.id === id ? { ...p, postStatus: '已结案' } : p));
             } else {
                 alert('操作失败');
             }
@@ -124,7 +124,8 @@ export default function MyPostsPage() {
                                                 <span className={`text-xs px-2 py-0.5 rounded focus:outline-none shrink-0 ${post.postStatus === '展示中' ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' :
                                                     post.postStatus === '审核中' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' :
                                                         post.postStatus === '被驳回' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' :
-                                                            'text-zinc-500 bg-zinc-100 dark:bg-zinc-800'
+                                                            post.postStatus === '已结案' ? 'text-zinc-500 bg-zinc-100 dark:bg-zinc-800' :
+                                                                'text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50'
                                                     }`}>
                                                     {post.postStatus}
                                                 </span>

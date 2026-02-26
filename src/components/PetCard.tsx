@@ -13,6 +13,7 @@ interface PetCardProps {
   reward?: string;
   isUrgent?: boolean;
   postType?: 'seek' | 'found' | 'adopt' | 'lost';
+  petType?: 'dog' | 'cat' | 'other';
 }
 
 const PetCard: React.FC<PetCardProps> = ({
@@ -26,6 +27,7 @@ const PetCard: React.FC<PetCardProps> = ({
   reward,
   isUrgent,
   postType,
+  petType,
 }) => {
   // Logic for title: seek/found/lost shows breed, adopt shows name
   const rawTitle = (postType === 'adopt' ? name : (breed || name)) || '宠物';
@@ -34,6 +36,13 @@ const PetCard: React.FC<PetCardProps> = ({
 
   // Label for reward area
   const rewardLabel = postType === 'adopt' ? '领养费' : '赏金';
+
+  // Dynamic status label
+  const showStatusTag = postType === 'lost' || postType === 'seek' || postType === 'found';
+  const tagText = (postType === 'lost' || postType === 'seek')
+    ? '急寻'
+    : `谁丢的${petType === 'dog' ? '狗' : petType === 'cat' ? '猫' : '宠'}`;
+  const tagBg = (postType === 'lost' || postType === 'seek') ? 'bg-red-500' : 'bg-blue-500';
 
   return (
     <Link to={`/detail/${id}`} className="block">
@@ -45,9 +54,9 @@ const PetCard: React.FC<PetCardProps> = ({
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          {isUrgent && (
-            <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] px-2 py-0.5 font-bold rounded-br-lg">
-              急寻
+          {showStatusTag && (
+            <div className={`absolute top-0 left-0 ${tagBg} text-white text-[10px] px-2 py-0.5 font-bold rounded-br-lg shadow-sm shadow-black/10`}>
+              {tagText}
             </div>
           )}
         </div>
@@ -67,9 +76,11 @@ const PetCard: React.FC<PetCardProps> = ({
 
           <div className="flex justify-between items-end mt-2">
             <div className="flex flex-col">
-              <span className="text-amber-500 font-bold text-lg">
-                {rewardLabel}: {reward || '详议'}
-              </span>
+              {postType === 'seek' && (
+                <span className="text-amber-500 font-bold text-lg">
+                  赏金: {reward || '详议'}
+                </span>
+              )}
             </div>
             <button className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full text-xs font-bold">
               查看详情

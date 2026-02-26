@@ -62,7 +62,8 @@ export default function HomePage() {
               imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
               isUrgent: post.post_type === 'lost' || post.post_type === 'seek',
               reward: post.reward_amount ? `¥${post.reward_amount}` : undefined,
-              postType: post.post_type
+              postType: post.post_type,
+              petType: post.pet_type
             };
           }));
         }
@@ -276,6 +277,8 @@ export default function HomePage() {
                 imageUrl={pet.imageUrl}
                 reward={pet.reward}
                 isUrgent={pet.isUrgent}
+                postType={pet.postType}
+                petType={pet.petType}
               />
             ))
           ) : (

@@ -47,7 +47,9 @@ export default function MyFavoritesPage() {
                     location: post.location,
                     time: formatTimeAgo(post.created_at),
                     imageUrl: post.images && post.images.length > 0 ? post.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
-                    isResolved: post.status === '已结案'
+                    isResolved: post.status === '已结案',
+                    postType: post.post_type,
+                    petType: post.pet_type
                 })));
             }
             setIsLoading(false);

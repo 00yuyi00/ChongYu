@@ -44,7 +44,7 @@ export default function PetDetailPage() {
           imageUrl: data.images && data.images.length > 0 ? data.images[0] : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500',
           images: data.images || [],
           status: data.post_type,
-          reward: data.reward_amount ? `¥${data.reward_amount}` : (data.post_type === 'lost' || data.post_type === 'seek' ? '详议' : undefined),
+          reward: data.reward_amount ? `¥${data.reward_amount}` : (data.post_type === 'seek' ? '详议' : undefined),
           description: data.description,
           publisher: {
             id: data.profiles.id,
@@ -55,7 +55,8 @@ export default function PetDetailPage() {
           age: data.age || '未知',
           health: `${data.vaccine !== 'unknown' ? '已免疫 ' : ''}${data.sterilization !== 'unknown' ? '已绝育' : ''}`.trim() || '疫苗/驱虫请私聊确认',
           phone: user ? (data.phone || '未留电话') : '登录后可见',
-          requirements: data.requirements || []
+          requirements: data.requirements || [],
+          petType: data.pet_type
         });
 
         // 获取收藏状态
@@ -174,13 +175,17 @@ export default function PetDetailPage() {
               <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 {(pet.status === 'adopt' ? pet.name : (pet.breed || pet.name)).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()（）！，。？：；“”‘’]/g, "").trim()}
               </h1>
-              {pet.status === 'lost' ? (
+              {pet.status === 'lost' || pet.status === 'seek' ? (
                 <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs px-2 py-0.5 rounded-full font-medium border border-red-200 dark:border-red-800">
-                  寻宠中
+                  {pet.status === 'lost' ? '紧急寻宠' : '我要寻宠'}
+                </span>
+              ) : pet.status === 'found' ? (
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium border border-blue-200 dark:border-blue-800">
+                  {`谁丢的${pet.petType === 'dog' ? '狗' : pet.petType === 'cat' ? '猫' : '宠'}`}
                 </span>
               ) : (
                 <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-0.5 rounded-full font-medium border border-green-200 dark:border-green-800">
-                  {pet.status === 'found' ? '寻找主人' : '待领养'}
+                  待领养
                 </span>
               )}
             </div>
@@ -188,7 +193,7 @@ export default function PetDetailPage() {
               <MapPin className="w-3 h-3" /> {pet.location} · {pet.time}
             </p>
           </div>
-          {pet.reward && (
+          {pet.reward && pet.status === 'seek' && (
             <div className="text-right">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">悬赏金</p>
               <p className="text-xl font-bold text-amber-500">{pet.reward}</p>
